@@ -1,6 +1,6 @@
 import { SmartWeaveGlobal } from '../smartweave-global';
 
-const swGlobal = new SmartWeaveGlobal({} as any, null);
+const swGlobal = new SmartWeaveGlobal({} as any, null, null);
 const contractSrc = `
 function handle(action, state) {
   return {result: SmartWeave.block}

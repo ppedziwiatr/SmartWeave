@@ -1,12 +1,11 @@
 import Arweave from 'arweave';
-import { CreateTransactionInterface } from 'arweave/node/common';
+import {CreateTransactionInterface} from 'arweave/node/common';
 import Transaction from 'arweave/node/lib/transaction';
-import { JWKInterface } from 'arweave/node/lib/wallet';
-import { loadContract } from './contract-load';
-import { readContract } from './contract-read';
-import { execute, ContractInteraction, ContractInteractionResult } from './contract-step';
-import { unpackTags } from './utils';
-import { BlockData } from 'arweave/node/blocks';
+import {loadContract} from './contract-load';
+import {readContract} from './contract-read';
+import {ContractInteraction, ContractInteractionResult, execute} from './contract-step';
+import {OptionalWallet, unpackTags, Wallet} from './utils';
+import {BlockData} from 'arweave/node/blocks';
 
 /**
  * Writes an interaction on the blockchain.
@@ -24,7 +23,7 @@ import { BlockData } from 'arweave/node/blocks';
  */
 export async function interactWrite(
   arweave: Arweave,
-  wallet: JWKInterface | 'use_wallet',
+  wallet: Wallet,
   contractId: string,
   input: any,
   tags: { name: string; value: string }[] = [],
@@ -56,7 +55,7 @@ export async function interactWrite(
  */
 export async function simulateInteractWrite(
   arweave: Arweave,
-  wallet: JWKInterface,
+  wallet: Wallet,
   contractId: string,
   input: any,
   tags: { name: string; value: string }[] = [],
@@ -84,7 +83,7 @@ export async function simulateInteractWrite(
  */
 export async function interactWriteDryRun(
   arweave: Arweave,
-  wallet: JWKInterface | 'use_wallet',
+  wallet: Wallet,
   contractId: string,
   input: any,
   tags: { name: string; value: string }[] = [],
@@ -94,7 +93,7 @@ export async function interactWriteDryRun(
   fromParam: any = {},
   contractInfoParam: any = {},
 ): Promise<ContractInteractionResult> {
-  const { handler, swGlobal } = contractInfoParam || (await loadContract(arweave, contractId));
+  const { handler, swGlobal } = contractInfoParam || (await loadContract(arweave, contractId, wallet));
   const latestState = myState || (await readContract(arweave, contractId));
   const from = fromParam || (await arweave.wallets.getAddress(wallet));
 
@@ -118,6 +117,9 @@ export async function interactWriteDryRun(
  * This will load a contract to its latest state, and do a dry run of an interaction,
  * without writing anything to the chain.
  *
+ * Note: this seems to be somewhat similar interactWriteDryRun, but with the option
+ * to pass custom interaction transaction data.
+ *
  * @param arweave       an Arweave client instance
  * @param tx            a signed transaction
  * @param contractId    the Transaction Id of the contract
@@ -128,14 +130,14 @@ export async function interactWriteDryRun(
  */
 export async function interactWriteDryRunCustom(
   arweave: Arweave,
-  tx: any,
+  tx: Transaction,
   contractId: string,
   input: any,
   myState: any = {},
   fromParam: any = {},
   contractInfoParam: any = {},
 ): Promise<ContractInteractionResult> {
-  const { handler, swGlobal } = contractInfoParam || (await loadContract(arweave, contractId));
+  const { handler, swGlobal } = contractInfoParam || (await loadContract(arweave, contractId, undefined));
   const latestState = myState || (await readContract(arweave, contractId));
   const from = fromParam;
 
@@ -167,14 +169,14 @@ export async function interactWriteDryRunCustom(
  */
 export async function interactRead(
   arweave: Arweave,
-  wallet: JWKInterface | 'use_wallet' | undefined,
+  wallet: OptionalWallet,
   contractId: string,
   input: any,
   tags: { name: string; value: string }[] = [],
   target: string = '',
   winstonQty: string = '',
 ): Promise<any> {
-  const { handler, swGlobal } = await loadContract(arweave, contractId);
+  const { handler, swGlobal } = await loadContract(arweave, contractId, wallet);
   const latestState = await readContract(arweave, contractId);
   const from = wallet ? await arweave.wallets.getAddress(wallet) : '';
 
@@ -196,7 +198,7 @@ export async function interactRead(
 
 async function createTx(
   arweave: Arweave,
-  wallet: JWKInterface | 'use_wallet',
+  wallet: Wallet,
   contractId: string,
   input: any,
   tags: { name: string; value: string }[],
