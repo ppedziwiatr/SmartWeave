@@ -1,8 +1,8 @@
 import Arweave from 'arweave';
 import * as clarity from '@weavery/clarity';
-import { getTag, normalizeContractSource } from './utils';
-import { ContractHandler } from './contract-step';
-import { SmartWeaveGlobal } from './smartweave-global';
+import {getTag, normalizeContractSource, OptionalWallet} from './utils';
+import {ContractHandler} from './contract-step';
+import {SmartWeaveGlobal} from './smartweave-global';
 import BigNumber from 'bignumber.js';
 
 /**
@@ -11,7 +11,7 @@ import BigNumber from 'bignumber.js';
  * @param arweave     an Arweave client instance
  * @param contractID  the Transaction Id of the contract
  */
-export async function loadContract(arweave: Arweave, contractID: string, contractSrcTXID?: string) {
+export async function loadContract(arweave: Arweave, contractID: string, wallet: OptionalWallet, contractSrcTXID?: string) {
   // Generate an object containing the details about a contract in one place.
   const contractTX = await arweave.transactions.get(contractID);
   const contractOwner = await arweave.wallets.ownerToAddress(contractTX.owner);
@@ -20,19 +20,20 @@ export async function loadContract(arweave: Arweave, contractID: string, contrac
 
   const minFee = getTag(contractTX, 'Min-Fee');
   const contractSrcTX = await arweave.transactions.get(contractSrcTXID);
-  const contractSrc = contractSrcTX.get('data', { decode: true, string: true });
+  const contractSrc = contractSrcTX.get('data', {decode: true, string: true});
 
   let state: string;
   if (getTag(contractTX, 'Init-State')) {
     state = getTag(contractTX, 'Init-State');
   } else if (getTag(contractTX, 'Init-State-TX')) {
     const stateTX = await arweave.transactions.get(getTag(contractTX, 'Init-State-TX'));
-    state = stateTX.get('data', { decode: true, string: true });
+    state = stateTX.get('data', {decode: true, string: true});
   } else {
-    state = contractTX.get('data', { decode: true, string: true });
+    state = contractTX.get('data', {decode: true, string: true});
   }
 
-  const { handler, swGlobal } = createContractExecutionEnvironment(arweave, contractSrc, contractID, contractOwner);
+  const {handler, swGlobal}
+    = createContractExecutionEnvironment(arweave, contractSrc, contractID, contractOwner, wallet);
 
   return {
     id: contractID,
@@ -63,9 +64,10 @@ export function createContractExecutionEnvironment(
   contractSrc: string,
   contractId: string,
   contractOwner: string,
+  wallet: OptionalWallet
 ) {
   const returningSrc = normalizeContractSource(contractSrc);
-  const swGlobal = new SmartWeaveGlobal(arweave, { id: contractId, owner: contractOwner });
+  const swGlobal = new SmartWeaveGlobal(arweave, {id: contractId, owner: contractOwner}, wallet);
   const getContractFunction = new Function(returningSrc); // eslint-disable-line
 
   return {

@@ -1,6 +1,8 @@
 import Arweave from 'arweave';
 import { InteractionTx } from './interaction-tx';
 import { readContract } from './contract-read';
+import {interactRead} from "./contract-interact";
+import {OptionalWallet} from "./utils";
 
 /**
  *
@@ -36,9 +38,11 @@ export class SmartWeaveGlobal {
     owner: string;
   };
   unsafeClient: Arweave;
+  wallet: OptionalWallet; // wallet of the caller that is interacting with the contract.
 
   contracts: {
     readContractState: (contractId: string) => Promise<any>;
+    interactReadResult: (contractId: string, input: any) => Promise<any>;
   };
 
   _activeTx?: InteractionTx;
@@ -47,7 +51,7 @@ export class SmartWeaveGlobal {
     return !this._activeTx;
   }
 
-  constructor(arweave: Arweave, contract: { id: string; owner: string }) {
+  constructor(arweave: Arweave, contract: { id: string; owner: string }, wallet: OptionalWallet) {
     this.unsafeClient = arweave;
     this.arweave = {
       ar: arweave.ar,
@@ -66,7 +70,22 @@ export class SmartWeaveGlobal {
           height || (this._isDryRunning ? Number.POSITIVE_INFINITY : this.block.height),
           returnValidity,
         ),
+      interactReadResult: (calleContractTxId: string, input: any): Promise<any> => {
+        if (wallet === undefined) {
+          throw `Caller's wallet not set in SmartWeaveGlobal and is to call interactRead on other contract. 
+          Did you forget to pass wallet to the originally called SDK function?
+          `;
+          // alternatively return here sth like "{result: 'error-no-wallet'}",
+          // as handling such case might be handled by contract itself.
+        }
+        return interactRead(
+          arweave,
+          wallet,
+          calleContractTxId,
+          input);
+      }
     };
+    this.wallet = wallet;
   }
 }
 

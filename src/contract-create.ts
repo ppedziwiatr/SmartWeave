@@ -1,6 +1,6 @@
 import Arweave from 'arweave';
 import Transaction from 'arweave/node/lib/transaction';
-import { JWKInterface } from 'arweave/node/lib/wallet';
+import {Wallet} from "./utils";
 
 /**
  * Simulates the creation of a new contract from a contract, so that the cost for the creation can be checked
@@ -13,11 +13,11 @@ import { JWKInterface } from 'arweave/node/lib/wallet';
  */
 export async function simulateCreateContractFromSource(
   arweave: Arweave,
-  wallet: JWKInterface | 'use_wallet',
+  wallet: Wallet,
   initState: string,
   contractSrc: string,
 ): Promise<Transaction> {
-  const srcTx = await arweave.createTransaction({ data: contractSrc }, wallet);
+  const srcTx = await arweave.createTransaction({data: contractSrc}, wallet);
 
   srcTx.addTag('App-Name', 'SmartWeaveContractSource');
   srcTx.addTag('App-Version', '0.3.0');
@@ -47,14 +47,14 @@ export async function simulateCreateContractFromSource(
  */
 export async function simulateCreateContractFromTx(
   arweave: Arweave,
-  wallet: JWKInterface | 'use_wallet',
+  wallet: Wallet,
   srcTxId: string,
   state: string,
   tags: { name: string; value: string }[] = [],
   target: string = '',
   winstonQty: string = '',
 ): Promise<Transaction> {
-  let contractTX = await arweave.createTransaction({ data: state }, wallet);
+  let contractTX = await arweave.createTransaction({data: state}, wallet);
 
   if (target && winstonQty && target.length && +winstonQty > 0) {
     contractTX = await arweave.createTransaction(
@@ -92,11 +92,11 @@ export async function simulateCreateContractFromTx(
  */
 export async function createContract(
   arweave: Arweave,
-  wallet: JWKInterface | 'use_wallet',
+  wallet: Wallet,
   contractSrc: string,
   initState: string,
 ): Promise<string> {
-  const srcTx = await arweave.createTransaction({ data: contractSrc }, wallet);
+  const srcTx = await arweave.createTransaction({data: contractSrc}, wallet);
 
   srcTx.addTag('App-Name', 'SmartWeaveContractSource');
   srcTx.addTag('App-Version', '0.3.0');
@@ -112,6 +112,7 @@ export async function createContract(
     throw new Error('Unable to write Contract Source.');
   }
 }
+
 /**
  * Create a new contract from an existing contract source tx, with an initial state.
  * Returns the contract id.
@@ -126,14 +127,14 @@ export async function createContract(
  */
 export async function createContractFromTx(
   arweave: Arweave,
-  wallet: JWKInterface | 'use_wallet',
+  wallet: Wallet,
   srcTxId: string,
   state: string,
   tags: { name: string; value: string }[] = [],
   target: string = '',
   winstonQty: string = '',
 ) {
-  let contractTX = await arweave.createTransaction({ data: state }, wallet);
+  let contractTX = await arweave.createTransaction({data: state}, wallet);
 
   if (target && winstonQty && target.length && +winstonQty > 0) {
     contractTX = await arweave.createTransaction(

@@ -1,6 +1,6 @@
 import Arweave from 'arweave';
 import { loadContract } from './contract-load';
-import { arrayToHex, log } from './utils';
+import {arrayToHex, log, OptionalWallet} from './utils';
 import { execute, ContractInteraction } from './contract-step';
 import { InteractionTx } from './interaction-tx';
 import GQLResultInterface, { GQLEdgeInterface, GQLTransactionsResultInterface } from './interfaces/gqlResult';
@@ -16,19 +16,21 @@ import SmartWeaveError, { SmartWeaveErrorType } from './errors';
  * @param contractId      the Transaction Id of the contract
  * @param height          if specified the contract will be replayed only to this block height
  * @param returnValidity  if true, the function will return valid and invalid transaction IDs along with the state
+ * @param wallet          wallet of the caller. Required if contract's code is making "interactRead" calls to other contracts.
  */
 export async function readContract(
   arweave: Arweave,
   contractId: string,
   height?: number,
   returnValidity?: boolean,
+  wallet?: OptionalWallet
 ): Promise<any> {
   if (!height) {
     const networkInfo = await arweave.network.getInfo();
     height = networkInfo.height;
   }
 
-  const loadPromise = loadContract(arweave, contractId).catch((err) => {
+  const loadPromise = loadContract(arweave, contractId, wallet).catch((err) => {
     const error: SmartWeaveError = new SmartWeaveError(SmartWeaveErrorType.CONTRACT_NOT_FOUND, {
       message: `Contract having txId: ${contractId} not found`,
       requestedTxId: contractId,
@@ -110,7 +112,7 @@ export async function readContract(
       if (contractSrc !== state.evolve) {
         try {
           console.log('inside evolve!', state.evolve);
-          contractInfo = await loadContract(arweave, contractId, evolve);
+          contractInfo = await loadContract(arweave, contractId, wallet, evolve);
           handler = contractInfo.handler;
         } catch (e) {
           const error: SmartWeaveError = new SmartWeaveError(SmartWeaveErrorType.CONTRACT_NOT_FOUND, {

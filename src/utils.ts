@@ -1,5 +1,9 @@
 import Transaction from 'arweave/node/lib/transaction';
 import Arweave from 'arweave';
+import {JWKInterface} from "arweave/node/lib/wallet";
+
+export type Wallet = JWKInterface | 'use_wallet';
+export type OptionalWallet = Wallet | undefined;
 
 interface UnformattedTag {
   name: string;
