@@ -29,6 +29,12 @@ export async function readContract(
   height?: number,
   returnValidity?: boolean,
 ): Promise<any> {
+  console.log('=== readContract entry ===');
+  console.log('=== CACHE:  ', { contracts: Object.keys(cache).length });
+  Object.keys(cache).forEach((key) => {
+    console.log(`=== ${key}:  `, { size: Object.keys(cache[key]).length });
+  });
+
   if (!height) {
     const networkInfo = await arweave.network.getInfo();
     height = networkInfo.height;
