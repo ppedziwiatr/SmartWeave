@@ -207,7 +207,9 @@ export async function interactRead(
     caller: from,
   };
 
+  console.time("networkInfo");
   const { height, current } = await arweave.network.getInfo();
+  console.timeEnd("networkInfo");
 
   const tx = await createTx(arweave, wallet, contractId, input, tags, target, winstonQty);
 
@@ -217,7 +219,9 @@ export async function interactRead(
 
   contractInfo.swGlobal._activeTx = dummyActiveTx;
 
+  console.time("interactReadExecution");
   const result = await execute(contractInfo.handler, interaction, latestState);
+  console.timeEnd("interactReadExecution");
   return result.result;
 }
 

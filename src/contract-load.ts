@@ -13,16 +13,24 @@ import BigNumber from 'bignumber.js';
  */
 export async function loadContract(arweave: Arweave, contractID: string, contractSrcTXID?: string) {
   // Generate an object containing the details about a contract in one place.
+  console.time("loadContractTotal");
+
+  console.time("contractTxGet");
   const contractTX = await arweave.transactions.get(contractID);
+  console.timeEnd("contractTxGet");
+
   const contractOwner = await arweave.wallets.ownerToAddress(contractTX.owner);
 
   contractSrcTXID = contractSrcTXID || getTag(contractTX, 'Contract-Src');
 
+  console.time("contractSrcTxGet");
   const minFee = getTag(contractTX, 'Min-Fee');
   const contractSrcTX = await arweave.transactions.get(contractSrcTXID);
   const contractSrc = contractSrcTX.get('data', { decode: true, string: true });
+  console.timeEnd("contractSrcTxGet");
 
   let state: string;
+  console.time("contractInitStateGet");
   if (getTag(contractTX, 'Init-State')) {
     state = getTag(contractTX, 'Init-State');
   } else if (getTag(contractTX, 'Init-State-TX')) {
@@ -31,8 +39,12 @@ export async function loadContract(arweave: Arweave, contractID: string, contrac
   } else {
     state = contractTX.get('data', { decode: true, string: true });
   }
+  console.timeEnd("contractInitStateGet");
+  console.timeEnd("loadContractTotal")
 
+  console.time("createContractExecutionEnvironment");
   const { handler, swGlobal } = createContractExecutionEnvironment(arweave, contractSrc, contractID, contractOwner);
+  console.timeEnd("createContractExecutionEnvironment");
 
   return {
     id: contractID,

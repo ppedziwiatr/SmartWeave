@@ -29,16 +29,17 @@ export async function readContract(
   height?: number,
   returnValidity?: boolean,
 ): Promise<any> {
-  console.log('=== readContract entry ===');
   console.log('=== CACHE:  ', { contracts: Object.keys(cache).length });
   Object.keys(cache).forEach((key) => {
     console.log(`=== ${key}:  `, { size: Object.keys(cache[key]).length });
   });
 
+  console.time("networkInfoHeight");
   if (!height) {
     const networkInfo = await arweave.network.getInfo();
     height = networkInfo.height;
   }
+  console.timeEnd("networkInfoHeight");
 
   if (contractId in cache) {
     if (height in cache[contractId]) {
@@ -64,15 +65,20 @@ export async function readContract(
 
   let state: any;
   let contractSrc: string = contractInfo.contractSrc;
+
+  console.time("initStateParse");
   try {
     state = JSON.parse(contractInfo.initState);
   } catch (e) {
     throw new Error(`Unable to parse initial state for contract: ${contractId}`);
   }
+  console.timeEnd("initStateParse");
 
   log(arweave, `Replaying ${txInfos.length} confirmed interactions`);
 
+  console.time("sortTransactions");
   await sortTransactions(arweave, txInfos);
+  console.timeEnd("sortTransactions");
 
   let { handler, swGlobal } = contractInfo;
 
@@ -90,6 +96,7 @@ export async function readContract(
     validity = res.validity;
   }
 
+  console.time("replayingContractState");
   for (const txInfo of txInfos) {
     const currentTx: InteractionTx = txInfo.node;
 
@@ -154,6 +161,7 @@ export async function readContract(
       }
     }
   }
+  console.timeEnd("replayingContractState");
 
   cache[contractId] = {
     ...(cache[contractId] || {}),
@@ -207,6 +215,7 @@ interface ReqVariables {
 
 // fetch all contract interactions up to the specified block height
 async function fetchTransactions(arweave: Arweave, contractId: string, height: number) {
+  console.time("fetchTransactions");
   let variables: ReqVariables = {
     tags: [
       {
@@ -240,6 +249,8 @@ async function fetchTransactions(arweave: Arweave, contractId: string, height: n
 
     txInfos.push(...transactions.edges.filter((tx) => !tx.node.parent || !tx.node.parent.id));
   }
+
+  console.timeEnd("fetchTransactions");
 
   return txInfos;
 }
